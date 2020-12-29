@@ -12,6 +12,13 @@ def fos_id_generator():
 fos_id_generator.counter = 0
 
 
+# transform empty strings to None
+def none_if_empty(s):
+    if s:
+        return s
+    return None
+
+
 def create_connection(db_file):
     """ create a database connection to the SQLite database
         specified by db_file
@@ -56,8 +63,8 @@ def insert_publication(conn, publications):
     :return: last row id
     """
     sql = ''' INSERT INTO publications(id, title, year, n_citation, n_author, n_reference, abstract_length, page_start,
-                                       page_end, doc_type, venue, publisher, volume, issue)
-              VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
+                                       page_end, doc_type, venue, venue_type, publisher, volume, issue)
+              VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) '''
     return sql_insert_many(conn, sql, publications)
 
 
@@ -201,6 +208,7 @@ def main():
             page_end text,
             doc_type text,
             venue text,
+            venue_type text,
             publisher text,
             volume text,
             issue text
@@ -354,15 +362,18 @@ def main():
 
                 # get the raw venue
                 venue = None
+                venue_type = None
                 if pub.get('venue') is not None:
                     venue = pub.get('venue').get('raw')
+                    venue_type = pub.get('venue').get('type')
 
                 # collect publications
                 publications.append(
                     (pub.get('id'), pub.get('title'), pub.get('year'), pub.get('n_citation'), get_n_author(aut),
-                     get_n_reference(ref), get_abstract_length(abstr, idx_abstr), pub.get('page_start'),
-                     pub.get('page_end'), pub.get('doc_type'), venue, pub.get('publisher'), pub.get('volume'),
-                     pub.get('issue'))
+                     get_n_reference(ref), get_abstract_length(abstr, idx_abstr), none_if_empty(pub.get('page_start')),
+                     none_if_empty(pub.get('page_end')), none_if_empty(pub.get('doc_type')), venue, venue_type,
+                     none_if_empty(pub.get('publisher')), none_if_empty(pub.get('volume')),
+                     none_if_empty(pub.get('issue')))
                 )
 
                 # collect abstracts
@@ -374,7 +385,7 @@ def main():
                 if aut is not None:
                     for item in aut:
                         authors.append(
-                            (item.get('id'), item.get('name'), item.get('org'))
+                            (item.get('id'), none_if_empty(item.get('name')), none_if_empty(item.get('org')))
                         )
                         pub_authors.append(
                             (pub.get('id'), item.get('id'))
